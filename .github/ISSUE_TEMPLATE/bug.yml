@@ -1,0 +1,15 @@
+name: Bug
+description: A world imported badly or a view showed the wrong stored value
+body:
+  - type: textarea
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Bedrock version
+  - type: textarea
+    attributes:
+      label: World shape
+      description: Folder or .mcworld, and whether level.dat / db were present. Do not attach the world if it contains private builds you do not want public.
