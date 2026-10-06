@@ -3,29 +3,29 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#10130e">
+  <meta name="theme-color" content="#14120f">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icon-180.png">
-  <link rel="stylesheet" href="./app.css?v=6">
+  <link rel="stylesheet" href="./app.css?v=8">
   <title>World Archaeologist</title>
 </head>
 <body>
   <main id="view">
-    <h2>Start a world</h2>
-    <p>Records stay on this phone. Tap the button if the form does not appear.</p>
-    <button class="primary" id="make" type="button">Create a world</button>
+    <h2>World Archaeologist</h2>
+    <p>A vanilla journal. Records stay on this phone.</p>
+    <button class="primary" id="boot" type="button">Open</button>
   </main>
   <nav class="bottom">
-    <button data-route="dashboard" class="active">Home</button>
+    <button data-route="home" class="active">Home</button>
     <button data-route="add">Add</button>
-    <button data-route="timeline">Time</button>
-    <button data-route="economy">Money</button>
+    <button data-route="time">Time</button>
+    <button data-route="explore">Explore</button>
     <button data-route="more">More</button>
   </nav>
   <div class="sheet" id="sheet"><div class="card" id="sheet-card"></div></div>
-  <div class="tip" id="tip"></div>
-  <script src="./app.js?v=6"></script>
+  <div class="toast" id="toast"></div>
+  <script src="./app.js?v=8"></script>
 </body>
 </html>
