@@ -1,94 +1,92 @@
-export const KINDS = ["Builder", "Technical", "Explorer", "Adventure", "Collector", "Experimenter", "Chaos", "Redstone", "Decorator", "Project-focused"];
-export const DONE = ["Dragon", "Dragon Egg", "Nether", "Wither", "Netherite", "Max Gear", "Elytra", "End Cities", "Major Farms", "Villager Infrastructure", "Large Storage"];
-export const BASES = ["Castle", "Town", "City", "House", "Survival Base", "Industrial Base", "Underground", "Ocean", "Mountain", "Village", "Multiple Bases", "Custom"];
-export const ASSETS = ["Mega farm", "Trading hall", "Storage system", "Railway", "Secret base", "Village", "Mob farm", "Industrial area", "Nether hub", "Road network", "Collection", "Arena"];
-export const LOVES = ["Building", "Technical", "Exploring", "Collecting", "Decorating", "Automation", "Adventure", "Projects", "Challenges", "Chaos", "Planning", "Lore"];
-export const NEVER = ["Mining", "Grinding", "Resource gathering", "Building", "Redstone", "Exploration", "Villagers", "Nether", "Fighting", "Farms", "Long projects", "Short projects", "Repetitive tasks", "Beginner progression"];
-
-const GEAR = [/get netherite/i, /mine ancient debris/i, /get an? elytra/i, /find an? elytra/i, /defeat the (ender )?dragon/i, /kill the (ender )?dragon/i, /enter the nether/i, /go to the nether/i, /start getting diamond/i, /get diamond gear/i];
+export const DONE = ["Netherite", "Elytra", "Dragon", "Wither", "Nether", "End Cities", "Major Farms", "Trading", "Storage"];
 
 export function finished(world) {
-  const text = `${world.gear || ""} ${world.finished || ""} ${(world.done || []).join(" ")} ${world.progress || ""}`.toLowerCase();
+  const text = `${(world.done || []).join(" ")} ${world.stage || ""} ${world.progress || ""}`.toLowerCase();
   const flags = {
-    dragon: /dragon/.test(text),
-    egg: /egg/.test(text),
-    nether: /nether/.test(text),
-    wither: /wither/.test(text),
-    netherite: /netherite/.test(text),
+    netherite: /netherite|max gear/.test(text),
     elytra: /elytra/.test(text),
-    max: /max gear|maxed|full netherite/.test(text),
+    dragon: /dragon/.test(text),
+    wither: /wither/.test(text),
+    nether: /nether/.test(text),
   };
-  flags.endgame = world.progress === "Basically finished" || world.stage === "Endgame" || (flags.netherite && flags.elytra && flags.dragon);
+  flags.endgame = world.stage === "Endgame" || world.stage === "Completely insane" || (flags.netherite && flags.elytra && flags.dragon);
+  flags.castleDone = Number(world.baseFinish) >= 100 || /finished/.test(String(world.doingDone || ""));
   return flags;
 }
 
-export function blocked(text, world, never) {
+export function blocked(text, world, never = []) {
   const flags = finished(world);
-  if (flags.elytra && /elytra/i.test(text) && /get|find|obtain/i.test(text)) return true;
-  if (flags.dragon && /dragon/i.test(text) && /defeat|kill|fight/i.test(text)) return true;
-  if (flags.netherite && /netherite/i.test(text) && /get|mine|upgrade to/i.test(text)) return true;
-  if (flags.nether && /enter the nether|go to the nether/i.test(text)) return true;
-  if ((never || []).includes("Beginner progression") && /diamond gear|first pickaxe|starter base/i.test(text)) return true;
-  if ((never || []).includes("Grinding") && /grind|farm for hours/i.test(text)) return true;
-  if ((never || []).includes("Mining") && /^mine /i.test(text)) return true;
-  return GEAR.some((rule) => rule.test(text));
+  const value = String(text);
+  if (flags.netherite && /get netherite|mine ancient debris/i.test(value)) return true;
+  if (flags.elytra && /get an? elytra|find an? elytra/i.test(value)) return true;
+  if (flags.dragon && /kill the dragon|defeat the dragon/i.test(value)) return true;
+  if (flags.castleDone && /^build a castle$/i.test(value)) return true;
+  if ((never || []).includes("Grinding") && /grind/i.test(value)) return true;
+  if ((never || []).includes("Beginner progression") && /diamond gear/i.test(value)) return true;
+  return false;
 }
 
-export function phaseLabel(world, likes) {
+export function interviewSteps(d) {
+  const steps = ["name", "world", "day", "stage"];
+  if (d.stage === "Endgame" || d.stage === "Completely insane") steps.push("done", "going");
+  else steps.push("going");
+  if (d.going === "Current mega project" || d.going === "Building") steps.push("making");
+  if (/castle/i.test(`${d.making || ""} ${d.base || ""}`)) steps.push("castleFinish");
+  if (/castle/i.test(`${d.making || ""} ${d.base || ""}`) && Number(d.baseFinish) < 100 && d.baseFinish != null) steps.push("castleLeft");
+  if (Number(d.baseFinish) >= 100) steps.push("nextOpportunity");
+  steps.push("play");
+  if ((d.kinds || []).includes("Technical")) steps.push("farms");
+  if ((d.kinds || []).includes("Explorer")) steps.push("explored");
+  if ((d.kinds || []).includes("Chaos")) steps.push("chaos");
+  if ((d.kinds || []).includes("Builder") && Number(d.baseFinish) >= 100) steps.push("scale");
+  if ((d.kinds || []).includes("Builder") && Number(d.baseFinish) < 100) steps.push("style");
+  steps.push("hate", "ambition", "annoy");
+  return steps;
+}
+
+export function pitch(world, profile, scale) {
   const flags = finished(world);
-  const bits = [];
-  if (flags.endgame) bits.push("Endgame");
-  else if (world.stage) bits.push(world.stage);
-  if ((likes || []).includes("Building") || /castle|city|town/i.test(world.baseType || world.base || "")) bits.push("Builder");
-  if ((likes || []).includes("Technical") || (likes || []).includes("Automation")) bits.push("Technical");
-  if ((likes || []).includes("Chaos")) bits.push("Chaos");
-  return bits.length ? bits.join(" / ") : "In progress";
-}
-
-function ambitionLine(world, level) {
-  const base = world.base || world.baseType || "the base";
-  const lines = {
-    0: `Improve the ${base} entrance.`,
-    1: `Build a district around the ${base}.`,
-    2: `Build a kingdom with the ${base} at the centre.`,
-    3: `A kingdom with districts, roads, landmarks, and its own identity.`,
-  };
-  return lines[level] || lines[1];
-}
-
-export function recommend(world, profile) {
-  const likes = profile.ranked || profile.kinds || [];
+  const base = world.base || "base";
   const never = profile.never || [];
-  const base = world.base || world.baseType || "your base";
-  const flags = finished(world);
-  const pool = [];
-  if (world.doing) pool.push({ title: `Finish ${world.doing}`, why: "This is the thing you said you are building. It should come before a new world.", minutes: 45, type: "Build" });
-  if (flags.endgame) pool.push({ title: `Turn ${base} into a settlement`, why: "Progression is done. The interesting work is identity around the place you already live.", minutes: 150, type: "Build" });
-  if (world.problem) pool.push({ title: `Deal with: ${world.problem}`, why: "You named this as the annoying part. Fixing it beats a random project.", minutes: 60, type: "Plan" });
-  if (world.legacy) pool.push({ title: world.legacy, why: "This is the long ambition you wrote down.", minutes: 240, type: "Legacy" });
-  pool.push({ title: ambitionLine(world, profile.ambition ?? 1), why: "Matched to the ambition level you set.", minutes: 90, type: "Build" });
-  if (!(never.includes("Exploration"))) pool.push({ title: "An outpost in a biome you do not live in", why: "A different session from the main build.", minutes: 40, type: "Explore" });
-  if ((likes.includes("Chaos") || profile.boredom === "Do something stupid")) pool.push({ title: "A monument to a useless item", why: "You asked for chaos. This does not need new gear.", minutes: 50, type: "Chaos" });
-  if (!flags.endgame) pool.push({ title: "A safe return point and a marked chest", why: "The world is not finished on gear yet. A bed and a chest still matter.", minutes: 15, type: "Survival" });
-  return pool.filter((item) => !blocked(item.title + " " + item.why, world, never)).slice(0, 3);
+  const rejected = new Set(profile.rejected || []);
+  let idea = { type: "WORLD DEVELOPMENT", title: `A road out of the ${base}`, why: "One path gives the place a direction.", phases: ["Mark the gate", "Lay the first road", "Add one stop"] };
+  if (flags.endgame && flags.castleDone) {
+    idea = { type: "WORLD DEVELOPMENT", title: "Capital district outside the main gate", why: "The castle is done. The next opportunity is the world around it, not another castle.", phases: ["Main road", "Residential district", "Market", "Defensive wall", "Landmarks"] };
+  } else if (world.doing && !flags.castleDone) {
+    idea = { type: "PROJECT", title: `Finish ${world.doing}`, why: "This is the open job.", phases: ["Close the current section", "Add the missing piece", "Stop"] };
+  } else if ((profile.kinds || []).includes("Technical") && !rejected.has("TECHNICAL")) {
+    idea = { type: "TECHNICAL", title: "A storage hall that the farms feed", why: "Machines without a place to land stay unused.", phases: ["Pick the farm", "Build the hall", "Connect one line"] };
+  }
+  if (rejected.has(idea.type) || never.includes("Building")) idea = { type: "EXPLORATION", title: "An outpost in a biome you do not live in", why: "A different session from the main build.", phases: ["Pick a direction", "Place a bed", "Mark it"] };
+  if (blocked(idea.title, world, never)) idea = { type: "INFRASTRUCTURE", title: "A named road between two places", why: "Connection, not gear.", phases: ["Name the ends", "Build the road"] };
+  const scopes = { 10: "Plan the road layout.", 30: "Build the first road section.", 60: "Create the first district.", 120: "Build the complete district." };
+  return { ...idea, scope: scopes[scale] || scopes[60], minutes: scale || 60, lead: flags.castleDone ? "The castle is done. The next opportunity isn’t another building." : "Start from what is already open." };
 }
 
-export function analyse(world, profile) {
-  const flags = finished(world);
-  const lines = [];
-  lines.push(flags.endgame ? "Progression is basically complete." : "Progression is still open, so early goals can stay.");
-  if ((profile.ranked || [])[0]) lines.push(`You ranked ${(profile.ranked || [])[0]} first.`);
-  if (world.doing) lines.push(`${world.doing} is the unfinished project.`);
-  if ((profile.never || []).length) lines.push(`I will not suggest: ${profile.never.slice(0, 3).join(", ")}.`);
-  if (flags.endgame) lines.push("Beginner gear goals are off.");
-  return lines;
+export function remix(idea) { return { ...idea, title: `${idea.title} with a rail hall`, why: "Same place, a second reason to visit." }; }
+export function escalate(idea) { return { ...idea, title: `${idea.title}, kingdom scale`, why: "Roads, districts, a wall, and a name.", phases: ["Road", "District", "Wall", "Name", "Second district"] }; }
+
+export function parseEvent(text, day) {
+  const raw = text.trim();
+  const lower = raw.toLowerCase();
+  let type = "Custom";
+  let title = raw;
+  if (/castle/.test(lower) && /finish|done|completed/.test(lower)) { type = "Build"; title = "Castle completed"; }
+  else if (/elytra/.test(lower)) { type = "Item"; title = "Elytra"; }
+  else if (/farm/.test(lower)) { type = "Build"; title = "Farm"; }
+  else if (/storage/.test(lower)) { type = "World change"; title = "Storage moved"; }
+  else if (/city|kingdom|district/.test(lower)) { type = "Project started"; title = raw; }
+  else if (/nether/.test(lower)) { type = "Milestone"; title = "Nether"; }
+  return { day, type, title };
 }
 
 export function reply(text, world, profile) {
   const raw = text.toLowerCase();
-  if (/30|minutes/.test(raw)) return { title: `A small landmark by ${world.base || "home"}`, why: "Half an hour. Not a new kingdom.", minutes: 30, type: "Quick" };
-  if (/insane|unhinged|huge/.test(raw)) return { title: ambitionLine(world, 3), why: "Escalated from the base you already have.", minutes: 240, type: "Chaos" };
-  if (/missing|gap/.test(raw)) return { title: world.problem ? `Fix ${world.problem}` : "Roads and a reason to leave the base", why: "The gap is experience, not another sword.", minutes: 70, type: "Plan" };
-  if (/bored/.test(raw)) return recommend(world, { ...profile, boredom: "Do something stupid" })[0];
-  return recommend(world, profile)[0];
+  const flags = finished(world);
+  if (/finished the castle/.test(raw)) return { say: "Castle marked finished. I won’t ask what’s left on it.", event: parseEvent(text, world.day), patch: { baseFinish: 100, doingDone: "finished" } };
+  if (/bored/.test(raw)) return { say: flags.castleDone ? "Your world isn’t missing gear. It’s missing a reason to leave the castle." : "Pick the open job, not a new world.", idea: pitch(world, profile, 60) };
+  if (/insane|absurd/.test(raw)) return { say: flags.castleDone ? "Don’t rebuild the castle. Give the east side a district and a fortified road." : "Scale the open job up, don’t start a second one.", idea: escalate(pitch(world, profile, 120)) };
+  if (/30|minutes/.test(raw)) return { say: "Same idea. Smaller scope.", idea: pitch(world, profile, 30) };
+  if (/missing/.test(raw)) return { say: flags.castleDone ? "The gap is the area outside the gate." : "The gap is the unfinished job.", idea: pitch(world, profile, 60) };
+  return { say: pitch(world, profile, 60).why, idea: pitch(world, profile, 60) };
 }

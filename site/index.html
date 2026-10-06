@@ -1,19 +1,25 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#10110f">
+  <meta name="theme-color" content="#0B0D0F">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icon-180.png">
-  <link rel="stylesheet" href="./app.css?v=13">
+  <link rel="stylesheet" href="./app.css?v=14">
   <title>World Director</title>
 </head>
 <body>
-  <main id="view"><h2>Who’s playing?</h2></main>
-  <nav class="bottom"><button data-route="home" class="active">Home</button><button data-route="discover">Discover</button><button data-route="talk">Talk</button><button data-route="world">World</button><button data-route="me">Me</button></nav>
+  <main id="view"><p class="react">Let’s figure out what kind of world this is.</p><h2>Who’s playing?</h2></main>
+  <nav class="bottom" aria-label="Main">
+    <button data-route="home">Home</button>
+    <button data-route="discover">Discover</button>
+    <button data-route="plan">Plan</button>
+    <button data-route="talk">Talk</button>
+    <button data-route="me">Me</button>
+  </nav>
   <div class="sheet" id="sheet"><div class="panel" id="panel"></div></div>
-  <script src="./app.js?v=13"></script>
+  <script src="./app.js?v=14"></script>
 </body>
 </html>

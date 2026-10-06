@@ -1,15 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { blocked, recommend } from "../site/engine.mjs";
+import { interviewSteps, pitch, blocked } from "../site/engine.mjs";
 
-const world = { day: 193, base: "Castle", baseType: "Castle", progress: "Basically finished", stage: "Endgame", doing: "Castle walls", done: ["Dragon", "Dragon Egg", "Nether", "Wither", "Netherite", "Max Gear", "Elytra", "End Cities", "Major Farms"], gear: "Max Netherite", finished: "Dragon Elytra Netherite" };
-const profile = { ranked: ["Building", "Projects"], never: ["Grinding", "Beginner progression"], ambition: 2, boredom: "Start something huge" };
+const popcorn = { name: "The Kingdom", day: 193, stage: "Endgame", done: ["Netherite", "Elytra", "Dragon", "Wither", "Nether"], base: "Castle", baseFinish: 100, doingDone: "finished", problem: "I have loads of resources but don’t know what to build next." };
+const profile = { kinds: ["Builder"], never: ["Grinding"], ambition: 3, rejected: [] };
 
-test("endgame interview does not suggest gear", () => {
-  assert.equal(blocked("Get Netherite", world, profile.never), true);
-  assert.equal(blocked("Get an Elytra", world, profile.never), true);
-  assert.equal(blocked("Defeat the Ender Dragon", world, profile.never), true);
-  const text = recommend(world, profile).map((item) => item.title + item.why).join(" ");
-  assert.equal(/get netherite|get an elytra|defeat the dragon|diamond gear/i.test(text), false);
-  assert.match(text, /castle|settlement|district|kingdom/i);
+test("finished castle is not asked what is unfinished", () => {
+  const steps = interviewSteps({ stage: "Endgame", making: "Castle", base: "Castle", baseFinish: 100, kinds: ["Builder"] });
+  assert.equal(steps.includes("castleLeft"), false);
+  assert.equal(steps.includes("nextOpportunity"), true);
+});
+
+test("endgame castle does not get gear or a new castle", () => {
+  const idea = pitch(popcorn, profile, 60);
+  const text = `${idea.title} ${idea.why} ${idea.lead}`;
+  assert.equal(blocked("Get Netherite", popcorn, profile.never), true);
+  assert.equal(blocked("Get an Elytra", popcorn, profile.never), true);
+  assert.equal(blocked("Kill the Dragon", popcorn, profile.never), true);
+  assert.equal(/build a castle|get netherite|get an elytra|kill the dragon/i.test(text), false);
+  assert.match(text, /castle is done|district|gate/i);
 });
