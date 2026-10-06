@@ -1,7 +1,7 @@
 [project]
 name = "minecraft-world-archaeologist"
-version = "0.1.0"
-description = "Import Minecraft Bedrock worlds, store snapshots, and compare how a world changes."
+version = "0.2.0"
+description = "Record Minecraft world history by hand and chart what you entered."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

@@ -1,9 +1,8 @@
 # Contributing
 
-Issues and pull requests are welcome. Do not add a parser that only pretends to read a format.
+The product records what a player types. Do not add world-file, LevelDB, or `.mcworld` parsing.
 
-- Run `pip install -e ".[dev]"`
-- Run `pytest` and `ruff check src tests`
-- Keep original worlds read-only in import code
-- Label estimated values in the UI and API
-- Add a fixture test for any new parser branch
+- `pip install -e ".[dev]"`
+- `pytest`
+- `ruff check src tests`
+- Label calculated figures as coming from recorded events

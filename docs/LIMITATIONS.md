@@ -1,15 +1,9 @@
-# Limitations
+# Limits
 
-Known unsupported data:
+The app does not read Minecraft saves. Chunk counts, inventories, and playtime are not inferred from files.
 
-- Java Edition region files and player `.dat` files
-- Chunk block palettes, biomes per chunk, and heightmaps
-- Block-entity inventories (chests, barrels, furnaces)
-- Entity counts, unless a future actor-prefix decoder is added
-- Snappy-compressed LevelDB table blocks
-- Real playtime. `Time` is world ticks. `LastPlayed` is a unix timestamp from the save.
-- Education and experiment flags are stored, not interpreted
+Recorded balance is the sum of transactions you saved. Item totals are the running sum of item changes you saved. Session length is the gap between the start and end you recorded.
 
-Chunk counts are distinct chunk keys in readable indexes. A world whose tables are all Snappy-compressed will show chunk coverage as unavailable and still store database byte size.
+The quick-entry parser is a set of rules. It can miss a phrase. The preview is the record that gets saved, after you edit it.
 
-Anomaly text says "unusual change detected". It does not claim the save was edited outside the game.
+In-app reminders appear on the dashboard only when the setting is on. The browser is not asked for notification permission.

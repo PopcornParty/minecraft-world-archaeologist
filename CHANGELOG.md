@@ -1,9 +1,11 @@
 # Changelog
 
+## 0.2.0
+
+- Removed world-folder import, `.mcworld` import, LevelDB parsing, and `level.dat` parsing.
+- Replaced that path with manual worlds, quick event entry, economy, items, goals, sessions, players, and backups.
+- Migration 2 drops the 0.1 snapshot tables.
+
 ## 0.1.0
 
-- Bedrock world folder and `.mcworld` import.
-- Little-endian `level.dat` parser and best-effort LevelDB index scan.
-- Snapshot storage in SQLite, duplicate detection by content fingerprint.
-- Comparison, timeline, search, journal, locations, achievements, anomaly notes, CSV and HTML export.
-- Java Edition is detected and rejected. It is not parsed.
+- Retired. Read Bedrock saves. No longer in the app.

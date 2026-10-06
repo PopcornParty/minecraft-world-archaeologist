@@ -1,36 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Minecraft World Archaeologist</title>
+  <title>World Archaeologist</title>
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
   <div class="app">
-    <nav>
-      <h1>World Archaeologist</h1>
-      <p>Bedrock save history</p>
-      <button data-route="dashboard" class="active">Dashboard</button>
-      <button data-route="worlds">Worlds</button>
-      <button data-route="import">Import</button>
+    <aside class="side">
+      <h1 class="mark">Archaeologist</h1>
+      <p>Recorded world history</p>
+      <button data-route="dashboard">Dashboard</button>
+      <button data-route="add">Add event</button>
       <button data-route="timeline">Timeline</button>
+      <button data-route="economy">Economy</button>
+      <button data-route="items">Items</button>
+      <button data-route="goals">Goals</button>
+      <button data-route="players">Players</button>
+      <button data-route="sessions">Sessions</button>
       <button data-route="analytics">Analytics</button>
-      <button data-route="compare">Compare</button>
-      <button data-route="map">Locations</button>
-      <button data-route="journal">Journal</button>
-      <button data-route="search">Search</button>
-      <button data-route="achievements">Achievements</button>
-      <p class="muted">/ search · g d dashboard · ? keys</p>
-    </nav>
+      <button data-route="heatmap">Heatmap</button>
+      <button data-route="worlds">Worlds</button>
+      <button data-route="more">More</button>
+      <p class="muted">/ search · Ctrl K commands</p>
+    </aside>
     <main id="view"></main>
   </div>
-  <div class="help" id="help"><div>
-    <h2>Keys</h2>
-    <p>/ search</p>
-    <p>g then d, w, t, j, a, i — dashboard, worlds, timeline, journal, analytics, import</p>
-    <p>? close this panel</p>
-  </div></div>
+  <nav class="bottom">
+    <button data-route="dashboard">Home</button>
+    <button data-route="add">Add</button>
+    <button data-route="timeline">Time</button>
+    <button data-route="economy">Money</button>
+    <button data-route="more">More</button>
+  </nav>
+  <div class="palette" id="palette"><div class="sheet" id="palette-box"></div></div>
+  <div class="tip" id="tip"></div>
   <script src="/static/app.js"></script>
 </body>
 </html>

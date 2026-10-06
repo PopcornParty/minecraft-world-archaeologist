@@ -1,11 +1,5 @@
-import os
-import tempfile
-from pathlib import Path
 
 import pytest
-
-ROOT = Path(tempfile.mkdtemp(prefix="mwa-test-"))
-os.environ["MWA_DATA_DIR"] = str(ROOT)
 
 
 @pytest.fixture()

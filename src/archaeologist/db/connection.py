@@ -10,10 +10,7 @@ _connection = None
 
 def data_dir() -> Path:
     override = os.environ.get("MWA_DATA_DIR")
-    if override:
-        path = Path(override)
-    else:
-        path = Path.home() / ".local" / "share" / "minecraft-world-archaeologist"
+    path = Path(override) if override else Path.home() / ".local" / "share" / "minecraft-world-archaeologist"
     path.mkdir(parents=True, exist_ok=True)
     return path
 

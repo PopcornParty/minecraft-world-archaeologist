@@ -1,42 +1,55 @@
-from archaeologist.services.achievements import evaluate
-from archaeologist.services.import_service import ImportService
-from archaeologist.services.records import add_journal, add_location, search
-from tests.test_parsers import make_world
+import pytest
+
+from archaeologist.services.store import (
+    StoreError,
+    create_event,
+    create_goal,
+    create_player,
+    create_world,
+    delete_event,
+    end_session,
+    start_session,
+    update_event,
+    update_goal,
+)
 
 
-def test_search_and_journal(conn, tmp_path):
-    world = make_world(tmp_path / "w", name="Castle World")
-    job = ImportService(conn).run_sync(world)
-    add_journal(conn, {"world_id": job["world_id"], "title": "Built the castle today", "body": "Finished the east wall.", "tags": "build"})
-    add_location(conn, {"world_id": job["world_id"], "name": "Secret Base", "x": 100, "y": 64, "z": -20, "description": "under the hill", "tags": "base"})
-    hits = search(conn, "castle")
-    assert any(hit["entity_type"] == "journal" for hit in hits)
-    base = search(conn, "Secret")
-    assert any(hit["title"] == "Secret Base" for hit in base)
-    evaluate(conn)
-    unlocked = conn.execute("SELECT id FROM achievements WHERE unlocked_at IS NOT NULL").fetchall()
-    assert any(row["id"] == "first_snapshot" for row in unlocked)
+def world(conn):
+    return create_world(conn, {"name": "Donut SMP", "currency_name": "coins", "edition": "Bedrock"})
 
 
-def test_large_item_search(conn):
-    conn.execute("INSERT INTO worlds(id, platform, stable_key, name, first_seen_at, last_seen_at, created_at) VALUES ('w', 'bedrock', 'k', 'Big', 't', 't', 't')")
-    conn.execute("INSERT INTO snapshots(id, world_id, fingerprint, imported_at, metadata_json) VALUES ('s', 'w', 'f', 't', '{}')")
-    conn.executemany(
-        "INSERT INTO item_totals(snapshot_id, player_id, item_id, category, quantity, stack_count, source) VALUES ('s', '', ?, 'other', 1, 1, 'inventory')",
-        [(f"minecraft:item_{i}",) for i in range(5000)],
-    )
-    for i in range(5000):
-        conn.execute(
-            "INSERT INTO search_fts(entity_type, entity_id, world_id, title, body, tags) VALUES ('item', ?, 'w', ?, 'other', '')",
-            (f"minecraft:item_{i}", f"minecraft:item_{i}"),
-        )
-    conn.commit()
-    import time
+def test_event_lifecycle(conn):
+    world_id = world(conn)
+    event_id = create_event(conn, {"world_id": world_id, "title": "Built castle", "event_type": "building", "amount": -120000, "category": "Construction"})
+    update_event(conn, event_id, {"title": "Expanded castle", "amount": -100000})
+    row = conn.execute("SELECT title, amount FROM events WHERE id = ?", (event_id,)).fetchone()
+    assert row["title"] == "Expanded castle"
+    assert conn.execute("SELECT SUM(amount) FROM transactions").fetchone()[0] == -100000
+    delete_event(conn, event_id)
+    assert conn.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 0
 
-    started = time.perf_counter()
-    rows = conn.execute("SELECT item_id FROM item_totals WHERE item_id = ?", ("minecraft:item_4999",)).fetchall()
-    elapsed = time.perf_counter() - started
-    assert rows
-    assert elapsed < 1.0
-    hits = search(conn, "item_4999")
-    assert hits
+
+def test_invalid_event(conn):
+    with pytest.raises(StoreError):
+        create_event(conn, {"world_id": "missing", "title": ""})
+
+
+def test_goal_and_session(conn):
+    world_id = world(conn)
+    goal_id = create_goal(conn, {"world_id": world_id, "title": "Reach 10M", "target": 10})
+    update_goal(conn, goal_id, {"current": 10})
+    assert conn.execute("SELECT status FROM goals WHERE id = ?", (goal_id,)).fetchone()[0] == "completed"
+    start_session(conn, world_id)
+    end_session(conn, world_id)
+    assert conn.execute("SELECT COUNT(*) FROM sessions WHERE ended_at IS NOT NULL").fetchone()[0] == 1
+    with pytest.raises(StoreError):
+        end_session(conn, world_id)
+
+
+def test_player_and_item(conn):
+    world_id = world(conn)
+    create_player(conn, {"world_id": world_id, "name": "Oliver"})
+    create_event(conn, {"world_id": world_id, "title": "Made 4000 diamonds", "event_type": "mining", "item_name": "Diamond", "item_delta": 4000, "player_name": "Oliver"})
+    qty = conn.execute("SELECT quantity FROM item_records").fetchone()[0]
+    assert qty == 4000
+    assert conn.execute("SELECT last_seen FROM players WHERE name = 'Oliver'").fetchone()[0]
