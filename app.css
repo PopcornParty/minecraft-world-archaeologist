@@ -1,53 +1,35 @@
 :root {
-  --bg: #14120f;
-  --paper: #1e1b16;
-  --ink: #f3ecdf;
-  --muted: #a89b88;
-  --line: #3a342c;
-  --accent: #c4a46a;
-  --good: #8eae78;
-  --bad: #d08a78;
+  --bg: #12110e;
+  --paper: #1c1a16;
+  --ink: #f4efe6;
+  --muted: #a39888;
+  --line: #343026;
+  --accent: #d7b56a;
   --sans: "Avenir Next", "Segoe UI", sans-serif;
   --serif: "Iowan Old Style", Palatino, Georgia, serif;
 }
-:root[data-theme="light"] {
-  --bg: #f4efe6;
-  --paper: #fffaf3;
-  --ink: #221c16;
-  --muted: #6f6558;
-  --line: #e4d8c6;
-  --accent: #8a6230;
-}
+:root[data-theme="light"] { --bg: #f3eee4; --paper: #fffaf2; --ink: #211c16; --muted: #6e6558; --line: #e2d6c4; --accent: #8a5e2a; }
 * { box-sizing: border-box; }
-html, body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.4 var(--sans); }
-button, input, select, textarea { font: 16px/1.3 var(--sans); color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 2px; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.4 var(--sans); }
+button, input, select, textarea { font: 16px/1.3 var(--sans); color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 2px; }
 button { min-height: 44px; padding: 10px 12px; }
-input, select, textarea { width: 100%; padding: 12px; }
-textarea { min-height: 88px; }
-main { padding: 16px 16px calc(92px + env(safe-area-inset-bottom)); max-width: 880px; margin: 0 auto; }
-h2 { font-family: var(--serif); font-weight: 500; font-size: 32px; margin: 0 0 8px; }
-h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+input, select, textarea { width: 100%; padding: 12px; background: var(--bg); }
+textarea { min-height: 80px; }
+main { padding: 20px 16px calc(96px + env(safe-area-inset-bottom)); max-width: 760px; margin: 0 auto; }
+h2 { font-family: var(--serif); font-weight: 500; font-size: 34px; margin: 0 0 6px; }
+.kicker { letter-spacing: 0.12em; text-transform: uppercase; font-size: 12px; color: var(--muted); }
 .muted { color: var(--muted); }
-.bar, .row { display: flex; gap: 8px; align-items: center; }
-.grow { flex: 1; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.stat, .panel { background: var(--paper); border: 1px solid var(--line); padding: 12px; }
-.stat b { display: block; font-family: var(--serif); font-size: 28px; font-weight: 500; }
-.panel { margin-top: 10px; }
+.card { border-top: 1px solid var(--line); padding: 14px 0; }
+.card b { font-family: var(--serif); font-size: 22px; font-weight: 500; }
 .primary { background: var(--accent); color: #1b140c; border-color: var(--accent); }
-.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; }
-.chips button { flex: 0 0 auto; }
-.bottom { position: fixed; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(5, 1fr); background: var(--paper); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); z-index: 4; }
-.bottom button { border: 0; background: transparent; }
+.row { display: flex; gap: 8px; }
+.row > * { flex: 1; }
+.bottom { position: fixed; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(5, 1fr); background: var(--paper); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+.bottom button { border: 0; }
 .bottom button.active { color: var(--accent); }
-.sheet { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; z-index: 6; }
+.sheet { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; z-index: 5; }
 .sheet.open { display: block; }
-.sheet .card { position: absolute; left: 0; right: 0; bottom: 0; max-height: 86vh; overflow: auto; background: var(--paper); padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
-.progress { height: 8px; background: var(--bg); border: 1px solid var(--line); }
-.progress > div { height: 100%; background: var(--accent); }
-.heat { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; }
-.heat i { aspect-ratio: 1; background: var(--accent); display: block; }
-svg.chart { width: 100%; height: 160px; background: var(--bg); border: 1px solid var(--line); }
-.toast { position: fixed; left: 16px; right: 16px; bottom: calc(84px + env(safe-area-inset-bottom)); background: var(--paper); border: 1px solid var(--line); padding: 10px; display: none; z-index: 7; }
-.empty { color: var(--muted); }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+.sheet .card { position: absolute; left: 0; right: 0; bottom: 0; background: var(--paper); padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); max-height: 88vh; overflow: auto; }
+.chips { display: flex; gap: 8px; overflow-x: auto; }
+.chips button { flex: 0 0 auto; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
