@@ -1,41 +1,27 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { analytics, streakInfo } from "../site/analytics.js";
-import { parseQuick } from "../site/parse.js";
+import { parseQuick, recommendations, worldStats } from "../site/logic.mjs";
 
-test("building spend parses to a negative amount", () => {
-  const parsed = parseQuick("Built castle and spent 120k on materials");
-  assert.equal(parsed.eventType, "building");
-  assert.equal(parsed.amount, -120000);
+test("day and coordinates parse", () => {
+  const parsed = parseQuick("Day 247, found diamonds at -342 12 891");
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.day, 247);
+  assert.equal(parsed.x, -342);
+  assert.equal(parsed.kind, "discovery");
   assert.equal(parsed.source, "rules");
 });
 
-test("stacks and deaths", () => {
-  assert.equal(parseQuick("Sold 3 stacks of emeralds").itemDelta, -192);
-  assert.equal(parseQuick("Died twice").deathCount, 2);
-  assert.equal(parseQuick("Oliver joined", ["Oliver"]).playerName, "Oliver");
+test("nether death stays a death", () => {
+  const parsed = parseQuick("Died in Nether while exploring a fortress");
+  assert.equal(parsed.kind, "death");
+  assert.equal(parsed.dimension, "Nether");
 });
 
-test("analytics use only recorded rows", () => {
-  const world = { id: "w", currencyName: "coins" };
-  const records = {
-    events: [{ worldId: "w", eventType: "trade", title: "Sold", occurredAt: "2026-10-06T12:00:00.000Z" }],
-    transactions: [{ worldId: "w", amount: 500000, occurredAt: "2026-10-06T12:00:00.000Z", category: "Trading", playerId: null }],
-    items: [],
-    itemRecords: [],
-    players: [],
-    sessions: [],
-    weights: [],
-    goals: [],
-  };
-  const stats = analytics(world, records);
-  assert.equal(stats.balance, 500000);
-  assert.equal(stats.events, 1);
-});
-
-test("streak counts consecutive days", () => {
-  const today = new Date().toISOString();
-  const yesterday = new Date(Date.now() - 86400000).toISOString();
-  const info = streakInfo([{ occurredAt: today }, { occurredAt: yesterday }]);
-  assert.equal(info.current, 2);
+test("recommendations use only recorded rows", () => {
+  const world = { id: "w", eraNames: {} };
+  const records = { milestones: [{ worldId: "w", key: "nether", name: "Enter the Nether", done: false }], projects: [], goals: [], discoveries: [] };
+  const next = recommendations(world, records);
+  assert.equal(next[0].title, "Enter the Nether");
+  const stats = worldStats({ id: "w", currentDay: 100 }, { ...records, deaths: [{ worldId: "w" }], builds: [], sessions: [], discoveries: [], projects: [], goals: [] });
+  assert.equal(stats.per100, 1);
 });
