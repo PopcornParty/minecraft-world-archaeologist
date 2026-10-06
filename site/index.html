@@ -3,29 +3,28 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#14120f">
+  <meta name="theme-color" content="#12110e">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icon-180.png">
-  <link rel="stylesheet" href="./app.css?v=8">
-  <title>World Archaeologist</title>
+  <link rel="stylesheet" href="./app.css?v=9">
+  <title>World Co-Pilot</title>
 </head>
 <body>
   <main id="view">
-    <h2>World Archaeologist</h2>
-    <p>A vanilla journal. Records stay on this phone.</p>
-    <button class="primary" id="boot" type="button">Open</button>
+    <p class="kicker">World co-pilot</p>
+    <h2>What should I do?</h2>
+    <p>A short snapshot is enough. The ideas are already here.</p>
   </main>
   <nav class="bottom">
     <button data-route="home" class="active">Home</button>
+    <button data-route="do">Do</button>
     <button data-route="add">Add</button>
-    <button data-route="time">Time</button>
-    <button data-route="explore">Explore</button>
+    <button data-route="world">World</button>
     <button data-route="more">More</button>
   </nav>
   <div class="sheet" id="sheet"><div class="card" id="sheet-card"></div></div>
-  <div class="toast" id="toast"></div>
-  <script src="./app.js?v=8"></script>
+  <script src="./app.js?v=9"></script>
 </body>
 </html>

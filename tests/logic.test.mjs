@@ -1,27 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseQuick, recommendations, worldStats } from "../site/logic.mjs";
+import { ideas, parseQuick, stageOf, suggestions } from "../site/brain.mjs";
 
-test("day and coordinates parse", () => {
-  const parsed = parseQuick("Day 247, found diamonds at -342 12 891");
-  assert.equal(parsed.ok, true);
-  assert.equal(parsed.day, 247);
-  assert.equal(parsed.x, -342);
-  assert.equal(parsed.kind, "discovery");
-  assert.equal(parsed.source, "rules");
+test("a short snapshot is enough", () => {
+  const world = { id: "w", day: 193, gear: "Full Netherite", base: "Castle", doing: "mega farm", finished: "Dragon defeated, Elytra", flags: ["dragon", "elytra", "netherite"] };
+  assert.equal(stageOf(world), "end");
+  const next = suggestions(world, { events: [], projects: [], locations: [] });
+  assert.equal(next[0].title.includes("Nether") || next.some((item) => /infrastructure|portal|farm|mega/i.test(item.title + item.why)), true);
+  assert.equal(next.some((item) => /mine diamonds to make diamond armour/i.test(item.title)), false);
 });
 
-test("nether death stays a death", () => {
-  const parsed = parseQuick("Died in Nether while exploring a fortress");
-  assert.equal(parsed.kind, "death");
-  assert.equal(parsed.dimension, "Nether");
+test("quick text keeps the day", () => {
+  const parsed = parseQuick("Day 193, finally finished the castle and found an ancient city");
+  assert.equal(parsed.day, 193);
+  assert.equal(parsed.found.toLowerCase(), "ancient city");
 });
 
-test("recommendations use only recorded rows", () => {
-  const world = { id: "w", eraNames: {} };
-  const records = { milestones: [{ worldId: "w", key: "nether", name: "Enter the Nether", done: false }], projects: [], goals: [], discoveries: [] };
-  const next = recommendations(world, records);
-  assert.equal(next[0].title, "Enter the Nether");
-  const stats = worldStats({ id: "w", currentDay: 100 }, { ...records, deaths: [{ worldId: "w" }], builds: [], sessions: [], discoveries: [], projects: [], goals: [] });
-  assert.equal(stats.per100, 1);
+test("idea library is large", () => {
+  assert.ok(ideas().length >= 80);
 });

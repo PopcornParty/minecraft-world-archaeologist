@@ -1,9 +1,7 @@
-# World Archaeologist
+# World Co-Pilot
 
-A vanilla Minecraft journal you open in Safari. Records stay on the phone. The site does not read world files, and it does not use money, plugins, or an account.
+A vanilla Minecraft companion for Safari. You enter a short snapshot. The app suggests what to do. It does not read world files, and it does not ask you to log every session.
 
 https://popcornparty.github.io/minecraft-world-archaeologist/
 
-On an iPhone: open the link, then Share → Add to Home Screen. After the first visit, new records still save with no connection.
-
-Export backup from More downloads a file you can keep in Files. Import reads that file back. Replace asks before it deletes what is already stored.
+Open the link, fill the snapshot, then use Home. Add is only for something worth remembering. More has backup. Share → Add to Home Screen after the first visit.
