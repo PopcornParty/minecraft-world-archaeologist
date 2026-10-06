@@ -1,21 +1,7 @@
 # Architecture
 
-Input is typed or uploaded as a backup. Nothing in the request path opens a Minecraft directory.
+The published site is static. Safari loads the page, and IndexedDB holds worlds, events, players, transactions, items, goals, sessions, and backups.
 
-```
-quick entry / forms
-        ↓
-validation and rule parser
-        ↓
-events, transactions, items, goals, sessions
-        ↓
-SQLite
-        ↓
-analytics, insights, achievements
-        ↓
-HTTP API
-        ↓
-local UI
-```
+There is no account and no server-side database. Offline writes stay on the phone because they never leave the browser. A service worker caches the page, styles, and scripts after the first visit.
 
-The 0.1 Bedrock adapter, LevelDB scanner, and `.mcworld` importer have been removed.
+GitHub Actions tests the rule parser, then deploys the `site` folder to GitHub Pages.

@@ -1,8 +1,5 @@
 # Contributing
 
-The product records what a player types. Do not add world-file, LevelDB, or `.mcworld` parsing.
+The published app is the `site` folder. Do not add a server the phone has to run.
 
-- `pip install -e ".[dev]"`
-- `pytest`
-- `ruff check src tests`
-- Label calculated figures as coming from recorded events
+`node --test tests/logic.test.mjs` checks the rule parser and analytics.

@@ -1,11 +1,15 @@
 # Changelog
 
+## 0.3.0
+
+- Replaced the local Python server with a browser app.
+- Records are stored in IndexedDB on the device.
+- GitHub Pages deploys the site. A service worker caches the app shell for offline use.
+
 ## 0.2.0
 
-- Removed world-folder import, `.mcworld` import, LevelDB parsing, and `level.dat` parsing.
-- Replaced that path with manual worlds, quick event entry, economy, items, goals, sessions, players, and backups.
-- Migration 2 drops the 0.1 snapshot tables.
+- Manual journal replaced save-file import.
 
 ## 0.1.0
 
-- Retired. Read Bedrock saves. No longer in the app.
+- Retired world-file importer.

@@ -1,9 +1,9 @@
 # Limits
 
-The app does not read Minecraft saves. Chunk counts, inventories, and playtime are not inferred from files.
+Browser storage can be cleared by the phone. Export a backup if the history matters.
 
-Recorded balance is the sum of transactions you saved. Item totals are the running sum of item changes you saved. Session length is the gap between the start and end you recorded.
+The site cannot read Minecraft saves. Balance, items, and playtime exist only when you record them.
 
-The quick-entry parser is a set of rules. It can miss a phrase. The preview is the record that gets saved, after you edit it.
+Reminders are not push notifications. The sentence parser is a set of rules and can miss unusual wording; the preview is what gets saved.
 
-In-app reminders appear on the dashboard only when the setting is on. The browser is not asked for notification permission.
+There is no cloud sync. A backup file is the way to move records between devices.
