@@ -1,6 +1,362 @@
-import { ACHIEVEMENTS, analytics, health, insights } from "./analytics.js";
-import { all, exportBackup, id, importBackup, loadAll, put, remove, validateBackup } from "./db.js";
-import { EVENT_TYPES, parseQuick } from "./parse.js";
+const EVENT_TYPES = [
+  ["money", "Money"],
+  ["mining", "Mining"],
+  ["building", "Building"],
+  ["combat", "Combat"],
+  ["exploration", "Exploration"],
+  ["inventory", "Inventory"],
+  ["achievement", "Achievement"],
+  ["death", "Death"],
+  ["player", "Player"],
+  ["trade", "Trade"],
+  ["note", "Note"],
+  ["goal", "Goal"],
+];
+
+const TYPE_CATEGORY = {
+  money: "Miscellaneous",
+  mining: "Mining",
+  building: "Construction",
+  combat: "Combat",
+  exploration: "Exploration",
+  inventory: "Inventory",
+  achievement: "Progress",
+  death: "Combat",
+  player: "Social",
+  trade: "Trading",
+  note: "Notes",
+  goal: "Goals",
+};
+
+const AMOUNT = /(?<sign>\+|-)?(?<num>\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(?<suffix>[kKmMbB])?/;
+const STACKS = /(?<num>\d+)\s+stacks?\s+of\s+(?<item>[a-zA-Z][a-zA-Z0-9_ ]{0,40})/i;
+const ITEM_QTY = /(?<verb>made|mined|found|got|collected|gained|sold|used|spent|lost)\s+(?<num>\d{1,3}(?:,\d{3})+|\d+)\s+(?<item>[a-zA-Z][a-zA-Z0-9_ ]{0,32})/i;
+const COUNT_WORDS = { once: 1, one: 1, twice: 2, two: 2, thrice: 3, three: 3 };
+
+function scale(number, suffix) {
+  let value = Number(String(number).replace(/,/g, ""));
+  if (suffix) value *= { k: 1_000, m: 1_000_000, b: 1_000_000_000 }[suffix.toLowerCase()];
+  return value;
+}
+
+function moneyAmount(text) {
+  const spend = /\b(spent|spend|paid|bought|cost|lost)\b/i.test(text);
+  const income = /\b(earned|sold for|received|gained|profit|income)\b/i.test(text);
+  const match = text.match(AMOUNT);
+  if (!match) return null;
+  if (!spend && !income && !match.groups.suffix && !match.groups.sign) return null;
+  let value = scale(match.groups.num, match.groups.suffix);
+  if (match.groups.sign === "-") return -value;
+  if (match.groups.sign === "+") return value;
+  if (spend && !income) return -value;
+  if (income && !spend) return value;
+  return spend ? -value : value;
+}
+
+function eventType(text) {
+  const lowered = text.toLowerCase();
+  const rules = [
+    ["death", ["died", "death", "deaths"]],
+    ["player", ["joined", "left the", "logged on"]],
+    ["trade", ["sold", "bought", "traded", "trade"]],
+    ["building", ["built", "build", "expanded", "constructed", "castle", "farm", "base"]],
+    ["mining", ["mined", "mining", "diamonds", "ancient debris"]],
+    ["combat", ["pvp", "won", "lost a fight", "killed"]],
+    ["exploration", ["found a", "explored", "discovered", "location", "nether", "the end"]],
+    ["achievement", ["elytra", "unlocked", "achievement"]],
+    ["goal", ["goal"]],
+    ["inventory", ["inventory", "picked up"]],
+    ["money", ["spent", "earned", "paid", "balance"]],
+  ];
+  for (const [name, words] of rules) {
+    if (words.some((word) => lowered.includes(word))) return name;
+  }
+  return "note";
+}
+
+function item(text) {
+  const stacks = text.match(STACKS);
+  if (stacks) {
+    let delta = Number(stacks.groups.num) * 64;
+    if (/\b(sold|used|spent|lost)\b/i.test(text)) delta = -delta;
+    return [stacks.groups.item.trim().replace(/\.$/, ""), delta];
+  }
+  const found = text.match(ITEM_QTY);
+  if (!found) return /\belytra\b/i.test(text) ? ["Elytra", 1] : [null, null];
+  let delta = Number(found.groups.num.replace(/,/g, ""));
+  if (["sold", "used", "spent", "lost"].includes(found.groups.verb.toLowerCase())) delta = -delta;
+  return [found.groups.item.trim().replace(/\.$/, ""), delta];
+}
+
+function player(text, known = []) {
+  for (const name of [...known].sort((a, b) => b.length - a.length)) {
+    if (name && new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(text)) return name;
+  }
+  const joined = text.match(/\b([A-Z][A-Za-z0-9_]{1,20})\s+(joined|left)\b/);
+  return joined ? joined[1] : null;
+}
+
+function deaths(text) {
+  if (!/\b(died|death|deaths)\b/i.test(text)) return null;
+  const numbered = text.match(/\b(\d+)\b/);
+  if (numbered) return Number(numbered[1]);
+  for (const [word, count] of Object.entries(COUNT_WORDS)) {
+    if (new RegExp(`\\b${word}\\b`, "i").test(text)) return count;
+  }
+  return 1;
+}
+
+function parseQuick(text, players = []) {
+  const raw = text.trim().replace(/\s+/g, " ");
+  if (!raw) return { ok: false, error: "Enter what happened." };
+  let type = eventType(raw);
+  const amount = moneyAmount(raw);
+  const [itemName, itemDelta] = item(raw);
+  if (amount != null && type === "note") type = "money";
+  if (itemDelta != null && (type === "note" || type === "money")) type = itemDelta > 0 ? "mining" : "inventory";
+  return {
+    ok: true,
+    source: "rules",
+    eventType: type,
+    category: TYPE_CATEGORY[type],
+    title: raw.slice(0, 120),
+    description: raw,
+    amount,
+    itemName,
+    itemDelta,
+    playerName: player(raw, players),
+    deathCount: deaths(raw),
+  };
+}
+function dayOf(value) {
+  if (!value) return null;
+  return String(value).slice(0, 10);
+}
+
+function streakInfo(events) {
+  const days = [...new Set(events.map((event) => dayOf(event.occurredAt)).filter(Boolean))].sort();
+  if (!days.length) return { current: 0, longest: 0, activeDays: 0 };
+  let longest = 1;
+  let run = 1;
+  for (let i = 1; i < days.length; i += 1) {
+    const prev = new Date(`${days[i - 1]}T00:00:00`);
+    const next = new Date(`${days[i]}T00:00:00`);
+    const diff = (next - prev) / 86400000;
+    if (diff === 1) {
+      run += 1;
+      longest = Math.max(longest, run);
+    } else if (diff !== 0) run = 1;
+  }
+  const today = new Date();
+  const key = today.toISOString().slice(0, 10);
+  const set = new Set(days);
+  let cursor = set.has(key) ? today : new Date(today.getTime() - 86400000);
+  let current = 0;
+  while (set.has(cursor.toISOString().slice(0, 10))) {
+    current += 1;
+    cursor = new Date(cursor.getTime() - 86400000);
+  }
+  return { current, longest, activeDays: days.length };
+}
+
+function analytics(world, records) {
+  const events = records.events.filter((event) => event.worldId === world.id);
+  const txs = records.transactions.filter((tx) => tx.worldId === world.id);
+  const income = txs.filter((tx) => tx.amount > 0).reduce((sum, tx) => sum + tx.amount, 0);
+  const spending = txs.filter((tx) => tx.amount < 0).reduce((sum, tx) => sum + tx.amount, 0);
+  let running = 0;
+  const balanceSeries = [...txs].sort((a, b) => a.occurredAt.localeCompare(b.occurredAt)).map((tx) => {
+    running += tx.amount;
+    return { at: tx.occurredAt, amount: tx.amount, balance: running };
+  });
+  const byType = Object.entries(events.reduce((acc, event) => {
+    acc[event.eventType] = (acc[event.eventType] || 0) + 1;
+    return acc;
+  }, {})).map(([eventType, count]) => ({ eventType, count })).sort((a, b) => b.count - a.count);
+  const byDay = Object.entries(events.reduce((acc, event) => {
+    const day = dayOf(event.occurredAt);
+    acc[day] = (acc[day] || 0) + 1;
+    return acc;
+  }, {})).map(([day, count]) => ({ day, count })).sort((a, b) => a.day.localeCompare(b.day));
+  const sessions = records.sessions.filter((session) => session.worldId === world.id);
+  const durations = sessions.filter((session) => session.endedAt).map((session) => (new Date(session.endedAt) - new Date(session.startedAt)) / 1000);
+  const items = records.items.filter((item) => item.worldId === world.id).map((item) => {
+    const series = records.itemRecords.filter((row) => row.itemId === item.id).sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
+    const quantities = series.map((row) => row.quantity).filter((value) => value != null);
+    return {
+      ...item,
+      current: quantities.at(-1) || 0,
+      highest: quantities.length ? Math.max(...quantities) : 0,
+      lowest: quantities.length ? Math.min(...quantities) : 0,
+      gained: series.filter((row) => row.delta > 0).reduce((sum, row) => sum + row.delta, 0),
+      lost: series.filter((row) => row.delta < 0).reduce((sum, row) => sum + row.delta, 0),
+      series,
+    };
+  });
+  const players = records.players.filter((player) => player.worldId === world.id).map((player) => ({
+    ...player,
+    events: events.filter((event) => event.playerId === player.id).length,
+    money: txs.filter((tx) => tx.playerId === player.id).reduce((sum, tx) => sum + tx.amount, 0),
+    builds: events.filter((event) => event.playerId === player.id && event.eventType === "building").length,
+    deaths: events.filter((event) => event.playerId === player.id && event.eventType === "death").length,
+  }));
+  const weights = records.weights.filter((weight) => !weight.worldId || weight.worldId === world.id);
+  const matched = weights.map((weight) => {
+    const hits = events.filter((event) => String(event[weight.matchField] || "").toLowerCase().includes(weight.matchValue.toLowerCase())).length;
+    return { ...weight, hits, points: hits * weight.points };
+  }).filter((row) => row.hits);
+  const wins = events.filter((event) => event.eventType === "combat" && /won/i.test(event.title)).length;
+  const losses = events.filter((event) => event.eventType === "combat" && /lost/i.test(event.title)).length;
+  return {
+    events: events.length,
+    income,
+    spending,
+    net: income + spending,
+    balance: running,
+    balanceSeries,
+    byType,
+    byDay,
+    items,
+    players,
+    sessions: {
+      count: durations.length,
+      totalSeconds: durations.reduce((sum, value) => sum + value, 0),
+      averageSeconds: durations.length ? durations.reduce((sum, value) => sum + value, 0) / durations.length : 0,
+      longestSeconds: durations.length ? Math.max(...durations) : 0,
+    },
+    streak: streakInfo(events),
+    progression: { score: matched.reduce((sum, row) => sum + row.points, 0), matched, note: "Score uses only the weights you configured." },
+    combat: { wins, losses, deaths: events.filter((event) => event.eventType === "death").length, winRate: wins + losses ? wins / (wins + losses) : null },
+    spendingCategories: Object.entries(txs.filter((tx) => tx.amount < 0).reduce((acc, tx) => {
+      acc[tx.category] = (acc[tx.category] || 0) + tx.amount;
+      return acc;
+    }, {})).map(([category, total]) => ({ category, total })),
+  };
+}
+
+function insights(world, records, stats) {
+  const lines = [];
+  if (stats.byType[0]) lines.push(`${stats.byType[0].eventType} is the most common recorded event type (${stats.byType[0].count}).`);
+  if (stats.income || stats.spending) lines.push(`Recorded net change is ${Math.round(stats.net).toLocaleString()} ${world.currencyName || "coins"}.`);
+  const completed = records.goals.filter((goal) => goal.worldId === world.id && goal.status === "completed").length;
+  if (completed) lines.push(`${completed} goals are marked completed.`);
+  if (!lines.length) lines.push("Record a few events and these lines will be calculated from them.");
+  return lines;
+}
+
+function health(world, records, stats) {
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  const recent = records.events.filter((event) => event.worldId === world.id && dayOf(event.occurredAt) >= weekAgo).length;
+  const last = records.sessions.filter((session) => session.worldId === world.id).map((session) => session.startedAt).sort().at(-1) || null;
+  return {
+    activity: recent >= 5 ? "high" : recent >= 1 ? "medium" : "low",
+    recentEvents: recent,
+    goalsActive: records.goals.filter((goal) => goal.worldId === world.id && goal.status === "active").length,
+    economy: stats.net > 0 ? "growing" : stats.net < 0 ? "down" : "flat",
+    lastSession: last,
+    streak: stats.streak.current,
+  };
+}
+
+const ACHIEVEMENTS = [
+  ["first_event", "First event", "Record one event.", "events", 1],
+  ["events_10", "Ten events", "Record 10 events.", "events", 10],
+  ["events_100", "Hundred events", "Record 100 events.", "events", 100],
+  ["streak_7", "Seven-day streak", "Record activity on 7 consecutive days.", "streak", 7],
+  ["streak_30", "Thirty-day streak", "Record activity on 30 consecutive days.", "streak", 30],
+  ["first_million", "First million", "Reach a recorded balance of 1,000,000.", "balance", 1000000],
+  ["ten_million", "Ten million", "Reach a recorded balance of 10,000,000.", "balance", 10000000],
+  ["goals_10", "Ten goals", "Complete 10 goals.", "goals", 10],
+  ["sessions_10", "Ten sessions", "Record 10 finished sessions.", "sessions", 10],
+  ["builds_100", "Hundred builds", "Record 100 building events.", "builds", 100],
+  ["trades_100", "Hundred trades", "Record 100 trade events.", "trades", 100],
+];
+const STORES = ["worlds", "players", "events", "transactions", "items", "itemRecords", "goals", "sessions", "locations", "journal", "milestones", "achievements", "weights", "settings"];
+
+function openDb() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("mwa", 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      for (const name of STORES) {
+        if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: "id" });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function txDone(tx) {
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+}
+
+async function all(store) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const request = db.transaction(store).objectStore(store).getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function put(store, value) {
+  const db = await openDb();
+  const tx = db.transaction(store, "readwrite");
+  tx.objectStore(store).put(value);
+  await txDone(tx);
+  return value;
+}
+
+async function remove(store, id) {
+  const db = await openDb();
+  const tx = db.transaction(store, "readwrite");
+  tx.objectStore(store).delete(id);
+  await txDone(tx);
+}
+
+async function loadAll() {
+  const records = {};
+  for (const store of STORES) records[store] = await all(store);
+  return records;
+}
+
+async function exportBackup() {
+  const records = await loadAll();
+  return { format: "mwa-backup", version: 3, exportedAt: new Date().toISOString(), ...records };
+}
+
+function validateBackup(payload) {
+  if (!payload || payload.format !== "mwa-backup" || payload.version !== 3) {
+    throw new Error("This file is not a World Archaeologist backup.");
+  }
+  for (const store of ["worlds", "events", "players", "goals"]) {
+    if (!Array.isArray(payload[store])) throw new Error(`Backup is missing ${store}.`);
+  }
+  return true;
+}
+
+async function importBackup(payload, mode) {
+  validateBackup(payload);
+  if (mode !== "merge" && mode !== "replace") throw new Error("Choose merge or replace.");
+  const db = await openDb();
+  const tx = db.transaction(STORES, "readwrite");
+  for (const store of STORES) {
+    const objectStore = tx.objectStore(store);
+    if (mode === "replace") objectStore.clear();
+    for (const row of payload[store] || []) objectStore.put(row);
+  }
+  await txDone(tx);
+  return { worlds: (payload.worlds || []).length };
+}
+
+function id() {
+  return crypto.randomUUID().replace(/-/g, "");
+}
 
 const view = document.querySelector("#view");
 const tip = document.querySelector("#tip");
@@ -311,6 +667,6 @@ async function more() {
 }
 
 document.querySelectorAll(".bottom [data-route]").forEach((btn) => btn.onclick = () => go(btn.dataset.route));
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=5");
+/* service worker reset is handled by the already installed worker */
 document.documentElement.dataset.theme = localStorage.getItem("mwa-theme") || "dark";
 go("dashboard");
