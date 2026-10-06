@@ -311,6 +311,6 @@ async function more() {
 }
 
 document.querySelectorAll(".bottom [data-route]").forEach((btn) => btn.onclick = () => go(btn.dataset.route));
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js");
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js?v=5");
 document.documentElement.dataset.theme = localStorage.getItem("mwa-theme") || "dark";
 go("dashboard");
