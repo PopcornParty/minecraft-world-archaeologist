@@ -1,21 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ideas, parseQuick, stageOf, suggestions } from "../site/brain.mjs";
+import { allow, recommend, reply } from "../site/engine.mjs";
 
-test("a short snapshot is enough", () => {
-  const world = { id: "w", day: 193, gear: "Full Netherite", base: "Castle", doing: "mega farm", finished: "Dragon defeated, Elytra", flags: ["dragon", "elytra", "netherite"] };
-  assert.equal(stageOf(world), "end");
-  const next = suggestions(world, { events: [], projects: [], locations: [] });
-  assert.equal(next[0].title.includes("Nether") || next.some((item) => /infrastructure|portal|farm|mega/i.test(item.title + item.why)), true);
-  assert.equal(next.some((item) => /mine diamonds to make diamond armour/i.test(item.title)), false);
+const endgame = { day: 193, base: "Castle", gear: "Full maxed Netherite, 6 Elytra", finished: "Dragon defeated, dragon egg", flags: [] };
+
+test("endgame never gets gear goals", () => {
+  const list = recommend(endgame, ["Build"]);
+  const text = list.map((item) => item.title + item.why).join(" ");
+  assert.equal(allow("Get an Elytra", endgame), false);
+  assert.equal(/get netherite|defeat the dragon|get an elytra/i.test(text), false);
+  assert.match(text, /build|settlement|gear/i);
 });
 
-test("quick text keeps the day", () => {
-  const parsed = parseQuick("Day 193, finally finished the castle and found an ancient city");
-  assert.equal(parsed.day, 193);
-  assert.equal(parsed.found.toLowerCase(), "ancient city");
-});
-
-test("idea library is large", () => {
-  assert.ok(ideas().length >= 80);
+test("talk understands bored and insane", () => {
+  assert.match(reply("I'm bored", endgame).title, /./);
+  assert.match(reply("make the castle insane", endgame).title, /capital/i);
 });
