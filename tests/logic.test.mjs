@@ -1,18 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { allow, recommend, reply } from "../site/engine.mjs";
+import { blocked, recommend } from "../site/engine.mjs";
 
-const endgame = { day: 193, base: "Castle", gear: "Full maxed Netherite, 6 Elytra", finished: "Dragon defeated, dragon egg", flags: [] };
+const world = { day: 193, base: "Castle", baseType: "Castle", progress: "Basically finished", stage: "Endgame", doing: "Castle walls", done: ["Dragon", "Dragon Egg", "Nether", "Wither", "Netherite", "Max Gear", "Elytra", "End Cities", "Major Farms"], gear: "Max Netherite", finished: "Dragon Elytra Netherite" };
+const profile = { ranked: ["Building", "Projects"], never: ["Grinding", "Beginner progression"], ambition: 2, boredom: "Start something huge" };
 
-test("endgame never gets gear goals", () => {
-  const list = recommend(endgame, ["Build"]);
-  const text = list.map((item) => item.title + item.why).join(" ");
-  assert.equal(allow("Get an Elytra", endgame), false);
-  assert.equal(/get netherite|defeat the dragon|get an elytra/i.test(text), false);
-  assert.match(text, /build|settlement|gear/i);
-});
-
-test("talk understands bored and insane", () => {
-  assert.match(reply("I'm bored", endgame).title, /./);
-  assert.match(reply("make the castle insane", endgame).title, /capital/i);
+test("endgame interview does not suggest gear", () => {
+  assert.equal(blocked("Get Netherite", world, profile.never), true);
+  assert.equal(blocked("Get an Elytra", world, profile.never), true);
+  assert.equal(blocked("Defeat the Ender Dragon", world, profile.never), true);
+  const text = recommend(world, profile).map((item) => item.title + item.why).join(" ");
+  assert.equal(/get netherite|get an elytra|defeat the dragon|diamond gear/i.test(text), false);
+  assert.match(text, /castle|settlement|district|kingdom/i);
 });
