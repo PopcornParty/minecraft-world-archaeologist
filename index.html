@@ -8,13 +8,17 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icon-180.png">
-  <link rel="stylesheet" href="./app.css">
+  <link rel="stylesheet" href="./app.css?v=5">
   <title>World Archaeologist</title>
 </head>
 <body>
-  <main id="view"></main>
+  <main id="view">
+    <h2>Start a world</h2>
+    <p>Records stay in this browser. If this message stays, pull to refresh once.</p>
+    <button class="primary" id="make" type="button">Create a world</button>
+  </main>
   <nav class="bottom">
-    <button data-route="dashboard">Home</button>
+    <button data-route="dashboard" class="active">Home</button>
     <button data-route="add">Add</button>
     <button data-route="timeline">Time</button>
     <button data-route="economy">Money</button>
@@ -22,6 +26,25 @@
   </nav>
   <div class="sheet" id="sheet"><div class="card" id="sheet-card"></div></div>
   <div class="tip" id="tip"></div>
-  <script type="module" src="./app.js"></script>
+  <script>
+    (function () {
+      var build = "5";
+      if (localStorage.getItem("mwa-build") === build) return;
+      localStorage.setItem("mwa-build", build);
+      var done = Promise.resolve();
+      if (navigator.serviceWorker) {
+        done = navigator.serviceWorker.getRegistrations().then(function (regs) {
+          return Promise.all(regs.map(function (reg) { return reg.unregister(); }));
+        });
+      }
+      done.then(function () {
+        if (!window.caches) return location.reload();
+        return caches.keys().then(function (keys) {
+          return Promise.all(keys.map(function (key) { return caches.delete(key); }));
+        }).then(function () { location.reload(); });
+      }).catch(function () { location.reload(); });
+    })();
+  </script>
+  <script type="module" src="./app.js?v=5"></script>
 </body>
 </html>
