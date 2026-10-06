@@ -30,9 +30,18 @@ function setActive(route) {
 async function go(route) {
   state.route = route;
   setActive(route);
-  await refresh();
-  const pages = { dashboard, add, timeline, economy, items, goals, players, sessions, analytics: analyticsPage, heatmap, worlds, more };
-  await pages[route]();
+  try {
+    await refresh();
+    if (!world() && route !== "worlds" && route !== "more" && route !== "dashboard") {
+      view.innerHTML = `<h2>No world yet</h2><p>Create a world first. The other screens read that record.</p><button class="primary" id="make">Create a world</button>`;
+      document.querySelector("#make").onclick = () => go("worlds");
+      return;
+    }
+    const pages = { dashboard, add, timeline, economy, items, goals, players, sessions, analytics: analyticsPage, heatmap, worlds, more };
+    await pages[route]();
+  } catch (err) {
+    view.innerHTML = `<h2>Could not open this screen</h2><p>${esc(err.message || err)}</p>`;
+  }
 }
 
 async function unlockAchievements() {

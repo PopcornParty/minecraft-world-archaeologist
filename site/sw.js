@@ -1,4 +1,4 @@
-const CACHE = "mwa-shell-v3";
+const CACHE = "mwa-shell-v4";
 const SHELL = ["./", "./index.html", "./app.css", "./app.js", "./db.js", "./parse.js", "./analytics.js", "./manifest.webmanifest", "./icon-180.png", "./icon-512.png"];
 
 self.addEventListener("install", (event) => {
