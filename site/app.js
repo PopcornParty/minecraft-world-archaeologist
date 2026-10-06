@@ -6,7 +6,7 @@ const view = document.querySelector("#view");
 const tip = document.querySelector("#tip");
 const state = { route: "dashboard", worldId: localStorage.getItem("mwa-world") || null, records: null };
 
-const esc = (value) => String(value ?? "").replace(/[&<>"]/g, (ch) => ({ "&": "&", "<": "<", ">": ">", '"': """ }[ch]));
+const esc = (value) => String(value ?? "").replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
 const money = (n) => n == null || n === "" ? "—" : Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
 const when = (value) => value ? String(value).replace("T", " ").slice(0, 16) : "—";
 
